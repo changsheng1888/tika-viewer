@@ -1,25 +1,63 @@
 name: Build iOS IPA
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 同一分支只保留一条排队/构建记录，避免多个任务同时抢 macOS 容量
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
-    runs-on: macos-15
+    # 优先用最新 macos-latest（macos-26）arm64 池子；若仍排不到，可下一行改成 macos-15 再试
+    runs-on: macos-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - name: Show Xcode
         run: |
           xcodebuild -version
           xcodebuild -list -project TikaViewer.xcodeproj
+
       - name: Build
         run: |
           set -o pipefail
-          xcodebuild -project TikaViewer.xcodeproj -target TikaViewer -configuration Release -sdk iphoneos -arch arm64 -derivedDataPath build ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build
-      - name: Package
+          xcodebuild -project TikaViewer.xcodeproj \
+            -target TikaViewer \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Locate app
+        id: app
         run: |
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP" ]; then
+            echo "::error::未找到 .app 产物，编译没有生成应用包"
+            echo "--- Products 目录 ---"
+            find build/Build/Products -maxdepth 3 -type d | head -50
+            exit 1
+          fi
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+          ls -lh "$APP"
+
+      - name: Package IPA
+        run: |
+          rm -rf Payload TikaViewer.ipa
           mkdir -p Payload
-          cp -R build/Build/Products/Release-iphoneos/TikaViewer.app Payload/
+          cp -R "${{ steps.app.outputs.path }}" Payload/
           zip -qry TikaViewer.ipa Payload
           ls -lh TikaViewer.ipa
+
       - uses: actions/upload-artifact@v4
         with:
           name: TikaViewer-ipa
