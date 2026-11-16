@@ -1,0 +1,32 @@
+PASS  binary 1024 解析一致
+PASS  binary 4096 解析一致
+PASS  HEX 文本（带分隔符）解析一致
+PASS  HEX 文本（无分隔）解析一致
+PASS  空文件报 empty
+PASS  512 字节报 unsupportedSize(512)
+PASS  1000 字符 HEX 报 invalidHex
+PASS  1024 字节纯十六进制文本报 invalidHex
+PASS  带分隔的 HEX 文本按文本解析
+PASS  差异块数与顺序
+PASS  第 3 块差异字节
+PASS  第 20 块差异字节
+PASS  差异字节总数
+PASS  差异扇区数
+PASS  尾块差异计数
+PASS  hasDiff(block:)
+PASS  相同卡无差异
+PASS  尺寸不一致标记
+PASS  尺寸不一致只比 1024
+PASS  UID 格式化
+PASS  块数
+PASS  类型标签
+PASS  尾块判断
+PASS  扇区号与标签
+PASS  4K 标签走块号
+PASS  block 越界返回空
+PASS  报告含差异统计
+PASS  报告含两块位置
+PASS  报告无异常空行
+PASS  Codable 往返
+---
+checks: 30, failures: 0
